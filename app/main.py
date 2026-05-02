@@ -39,7 +39,9 @@ reply_handler = ReplyHandler()
 # ═════════════════════════════════════════════════════════════
 
 @app.get("/")
+@app.head("/")
 @app.get("/ping")
+@app.head("/ping")
 async def ping():
     """Simple ping endpoint for UptimeRobot to keep the Render service alive."""
     return {"status": "alive", "timestamp": datetime.now(timezone.utc).isoformat()}
