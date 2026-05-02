@@ -35,6 +35,17 @@ reply_handler = ReplyHandler()
 
 
 # ═════════════════════════════════════════════════════════════
+# UPTIME ROBOT ENDPOINT
+# ═════════════════════════════════════════════════════════════
+
+@app.get("/")
+@app.get("/ping")
+async def ping():
+    """Simple ping endpoint for UptimeRobot to keep the Render service alive."""
+    return {"status": "alive", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+
+# ═════════════════════════════════════════════════════════════
 # GET /v1/healthz
 # ═════════════════════════════════════════════════════════════
 
