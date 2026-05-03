@@ -8,7 +8,7 @@ import sys
 import os
 import glob
 
-BASE = "http://localhost:8080"
+BASE = "https://vera-ai-kwdc.onrender.com"
 DATASET = "magicpin-ai-challenge/dataset"
 
 PASS = 0

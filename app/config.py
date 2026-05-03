@@ -13,8 +13,8 @@ load_dotenv()
 
 # --- Team Metadata ---
 TEAM_NAME: str = os.getenv("TEAM_NAME", "VeraEngine")
-TEAM_MEMBERS: list[str] = json.loads(os.getenv("TEAM_MEMBERS", '["Prakash"]'))
-CONTACT_EMAIL: str = os.getenv("CONTACT_EMAIL", "prakash@example.com")
+TEAM_MEMBERS: list[str] = json.loads(os.getenv("TEAM_MEMBERS", '["Ayush Prakash Tiwari"]'))
+CONTACT_EMAIL: str = os.getenv("CONTACT_EMAIL", "prakashayush414@gmail.com")
 BOT_VERSION: str = os.getenv("BOT_VERSION", "1.0.0")
 
 # --- Engine Tuning ---
