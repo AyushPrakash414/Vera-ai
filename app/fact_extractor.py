@@ -33,13 +33,14 @@ def extract_facts(
     facts["peer_avg_reviews"] = peer.get("avg_review_count")
 
     # ── Merchant facts ───────────────────────────────────────
+    # Cascade: identity sub-dict -> top-level merchant keys -> safe fallback
     identity = merchant.get("identity", {})
-    facts["merchant_name"] = identity.get("name", "Merchant")
-    facts["owner_first_name"] = identity.get("owner_first_name", "")
-    facts["city"] = identity.get("city", "")
-    facts["locality"] = identity.get("locality", "")
-    facts["languages"] = identity.get("languages", ["en"])
-    facts["verified"] = identity.get("verified", False)
+    facts["merchant_name"] = identity.get("name") or merchant.get("name") or "your business"
+    facts["owner_first_name"] = identity.get("owner_first_name") or merchant.get("owner_first_name") or ""
+    facts["city"] = identity.get("city") or merchant.get("city") or ""
+    facts["locality"] = identity.get("locality") or merchant.get("locality") or ""
+    facts["languages"] = identity.get("languages") or merchant.get("languages") or ["en"]
+    facts["verified"] = identity.get("verified", merchant.get("verified", False))
 
     perf = merchant.get("performance", {})
     facts["views_30d"] = perf.get("views")
@@ -130,6 +131,7 @@ def extract_facts(
             facts["digest_trial_n"] = item.get("trial_n")
             facts["digest_patient_segment"] = item.get("patient_segment", "")
             facts["digest_summary"] = item.get("summary", "")
+            facts["digest_actionable"] = item.get("actionable", "")
             facts["digest_kind"] = item.get("kind", "research")
 
     elif kind == "regulation_change":

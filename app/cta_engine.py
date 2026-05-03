@@ -17,33 +17,33 @@ CTA_NONE = "none"
 # ── Rule map: trigger_kind -> CTA type ───────────────────────
 _CTA_RULES: dict[str, str] = {
     # High urgency — binary CTAs to drive immediate action
-    "perf_spike": CTA_OPEN_ENDED,
+    "perf_spike": CTA_BINARY_YES_NO,
     "perf_dip": CTA_BINARY_YES_NO,
     "seasonal_perf_dip": CTA_BINARY_YES_NO,
     "supply_alert": CTA_BINARY_YES_NO,
-    "regulation_change": CTA_OPEN_ENDED,
-    "active_planning_intent": CTA_OPEN_ENDED,
+    "regulation_change": CTA_BINARY_YES_NO,
+    "active_planning_intent": CTA_BINARY_YES_NO,
     "renewal_due": CTA_BINARY_YES_NO,
 
     # Medium urgency — engagement-oriented
-    "research_digest": CTA_OPEN_ENDED,
+    "research_digest": CTA_BINARY_YES_NO,
     "recall_due": CTA_MULTI_CHOICE,
     "chronic_refill_due": CTA_BINARY_CONFIRM,
     "customer_lapsed_hard": CTA_BINARY_YES_NO,
     "customer_lapsed_soft": CTA_BINARY_YES_NO,
     "winback_eligible": CTA_BINARY_YES_NO,
-    "competitor_opened": CTA_OPEN_ENDED,
+    "competitor_opened": CTA_BINARY_YES_NO,
     "wedding_package_followup": CTA_BINARY_YES_NO,
     "trial_followup": CTA_BINARY_YES_NO,
 
     # Low urgency — curiosity / informational
-    "milestone_reached": CTA_OPEN_ENDED,
-    "festival_upcoming": CTA_OPEN_ENDED,
+    "milestone_reached": CTA_BINARY_YES_NO,
+    "festival_upcoming": CTA_BINARY_YES_NO,
     "ipl_match_today": CTA_BINARY_YES_NO,
-    "review_theme_emerged": CTA_OPEN_ENDED,
+    "review_theme_emerged": CTA_BINARY_YES_NO,
     "curious_ask_due": CTA_OPEN_ENDED,
-    "category_seasonal": CTA_OPEN_ENDED,
-    "dormant_with_vera": CTA_OPEN_ENDED,
+    "category_seasonal": CTA_BINARY_YES_NO,
+    "dormant_with_vera": CTA_BINARY_YES_NO,
     "gbp_unverified": CTA_BINARY_YES_NO,
     "cde_opportunity": CTA_BINARY_YES_NO,
     "category_trend_movement": CTA_OPEN_ENDED,

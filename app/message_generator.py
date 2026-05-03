@@ -219,8 +219,30 @@ def _addr(facts: dict, send_as: str) -> tuple[str, str]:
         n = _safe(facts.get("customer_name"), _safe(facts.get("merchant_name"), "there"))
     else:
         n = _safe(facts.get("owner_first_name"), _safe(facts.get("merchant_name"), "there"))
-    loc = _safe(facts.get("locality"), _safe(facts.get("city")))
+    loc = _safe(facts.get("locality"), _safe(facts.get("city"), "your area"))
     return n, loc
+
+
+def _loc_phrase(locality: str) -> str:
+    """Return ' in {locality}' only if locality is a real place, not a fallback."""
+    if locality and locality != "your area":
+        return f" in {locality}"
+    return ""
+
+
+def _saluted_name(facts: dict, send_as: str) -> str:
+    """Return the properly saluted name based on category conventions."""
+    if send_as == "merchant_on_behalf":
+        return _safe(facts.get("customer_name"), "there")
+    
+    owner = _safe(facts.get("owner_first_name"))
+    salutations = facts.get("salutation_examples", [])
+    
+    if salutations and owner:
+        # e.g. "Dr. {first_name}" -> "Dr. Meera"
+        return salutations[0].replace("{first_name}", owner)
+    
+    return owner or _safe(facts.get("merchant_name"), "there")
 
 
 def _offer_phrase(facts: dict) -> str:
@@ -242,7 +264,10 @@ def _fallback_body(facts: dict, trigger_kind: str, send_as: str) -> str:
     Structure: FACT + IMPACT + ACTION for every trigger kind.
     All values are null-safe — no 'None' or broken sentences.
     """
-    name, locality = _addr(facts, send_as)
+    _, locality = _addr(facts, send_as)
+    name = _saluted_name(facts, send_as)
+    loc_phrase = _loc_phrase(locality)
+    
     cust_name = _safe(facts.get("customer_name"))
     merchant_name = _safe(facts.get("merchant_name"), "your business")
 
@@ -306,18 +331,18 @@ def _fallback_body(facts: dict, trigger_kind: str, send_as: str) -> str:
         delta = _pct(facts.get("spike_delta_pct"))
         driver = _safe(facts.get("spike_driver"))
         driver_note = f", likely driven by {driver}" if driver else ""
-        loc_note = f" in {locality}" if locality else ""
         offer = _offer_phrase(facts)
-        return (f"{name}, your {metric}{loc_note} jumped {delta} this week{driver_note} — "
+        return (f"{name}, your {metric}{loc_phrase} jumped {delta} this week{driver_note} — "
                 f"strong demand is building and converting this now can increase bookings. "
                 f"Activate {offer}?")
 
     if trigger_kind == "perf_dip":
         metric = _safe(facts.get("dip_metric"), "engagement")
         delta = _pct(facts.get("dip_delta_pct"))
+        baseline = _safe(facts.get("dip_baseline"))
+        baseline_note = f" (down from {baseline})" if baseline else ""
         offer = _offer_phrase(facts)
-        loc_note = f" in {locality}" if locality else ""
-        return (f"{name}, your {metric}{loc_note} dropped {delta} this week — "
+        return (f"{name}, your {metric}{loc_phrase} dropped {delta} this week{baseline_note} — "
                 f"this likely means fewer bookings reaching you. "
                 f"Activating {offer} can recover visibility fast. Fix it now?")
 
@@ -325,7 +350,7 @@ def _fallback_body(facts: dict, trigger_kind: str, send_as: str) -> str:
         metric = _safe(facts.get("dip_metric"), "traffic")
         delta = _pct(facts.get("dip_delta_pct"))
         season = _safe(facts.get("season_note"), "this seasonal cycle")
-        return (f"{name}, your {metric} in {locality} is down {delta} — consistent with {season}. "
+        return (f"{name}, your {metric}{loc_phrase} is down {delta} — consistent with {season}. "
                 f"Competitors typically push offers during this window. Activate a counter-offer?")
 
     if trigger_kind == "recall_due":
@@ -353,20 +378,21 @@ def _fallback_body(facts: dict, trigger_kind: str, send_as: str) -> str:
         comp_offer = _safe(facts.get("competitor_offer"))
         dist_note = f" just {dist} km away" if dist else " nearby"
         offer_note = f" — they're promoting {comp_offer}" if comp_offer else ""
-        return (f"{name}, {comp} opened{dist_note} in {locality}{offer_note}. "
-                f"A strong counter-offer now can protect your footfall. Launch one?")
+        your_offer = _offer_phrase(facts)
+        return (f"{name}, {comp} opened{dist_note}{loc_phrase}{offer_note}. "
+                f"A strong counter-offer like {your_offer} now can protect your footfall. Launch one?")
 
     if trigger_kind == "festival_upcoming":
         fest = _safe(facts.get("festival_name"), "an upcoming festival")
         days_until = _safe(facts.get("festival_days_until"))
         time_note = f" is {days_until} days away" if days_until else " is approaching"
-        return (f"{name}, {fest}{time_note} — demand surges are already showing in {locality}. "
+        return (f"{name}, {fest}{time_note} — demand surges are already showing{loc_phrase}. "
                 f"Early prep gives you the edge over competitors. Start planning your festival push?")
 
     if trigger_kind == "ipl_match_today":
         match = _safe(facts.get("match_teams"), "today's IPL match")
         venue = _safe(facts.get("match_venue"), "a nearby venue")
-        return (f"{name}, {match} is live at {venue} tonight — match nights drive 20-40% more footfall in {locality}. "
+        return (f"{name}, {match} is live at {venue} tonight — match nights drive 20-40% more footfall{loc_phrase}. "
                 f"A same-day offer can capture that traffic. Push a match-night special?")
 
     if trigger_kind == "review_theme_emerged":
@@ -374,7 +400,7 @@ def _fallback_body(facts: dict, trigger_kind: str, send_as: str) -> str:
         count = _safe(facts.get("review_occurrences"), "multiple")
         quote = _safe(facts.get("review_quote"))
         quote_note = f' One customer said: "{quote}".' if quote else ""
-        return (f'{name}, "{theme}" appeared in {count} reviews this month in {locality}.{quote_note} '
+        return (f'{name}, "{theme}" appeared in {count} reviews this month{loc_phrase}.{quote_note} '
                 f"Addressing this now protects your rating. Tackle it?")
 
     if trigger_kind == "milestone_reached":
@@ -382,8 +408,8 @@ def _fallback_body(facts: dict, trigger_kind: str, send_as: str) -> str:
         val = _safe(facts.get("milestone_value_now"), "close")
         target = _safe(facts.get("milestone_target"))
         target_note = f" — just {int(float(target) - float(val))} away from {target}" if target and val and val != "close" else ""
-        return (f"{name}, your {metric} in {locality} hit {val}{target_note}. "
-                f"Sharing this milestone builds trust and attracts new customers. Promote it?")
+        return (f"{name}, your {metric}{loc_phrase} hit {val}{target_note}. "
+                f"Sharing this milestone builds trust and attracts new customers. Shall we post a thank-you note to your profile?")
 
     if trigger_kind == "active_planning_intent":
         topic = _safe(facts.get("planning_topic"), "your business initiative")
@@ -394,14 +420,20 @@ def _fallback_body(facts: dict, trigger_kind: str, send_as: str) -> str:
         title = _safe(facts.get("digest_title"), "a new research finding")
         source = _safe(facts.get("digest_source"))
         source_note = f" ({source})" if source else ""
-        return (f"{name}, new finding{source_note}: {title}. "
-                f"This may be relevant to your patient mix in {locality}. Worth reviewing for your practice?")
+        actionable = _safe(facts.get("digest_actionable"))
+        segment = _safe(facts.get("digest_patient_segment"))
+        segment_note = f" — particularly for your {segment} patients" if segment else ""
+        action_note = f" Suggested action: {actionable}." if actionable else ""
+        return (f"{name}, new finding{source_note}: {title}{segment_note}.{action_note} "
+                f"Want me to flag the affected patients in your list?")
 
     if trigger_kind == "regulation_change":
         title = _safe(facts.get("regulation_title"), "a regulatory update")
         deadline = _safe(facts.get("regulation_deadline"))
         deadline_note = f" Compliance deadline: {deadline}." if deadline else ""
-        return (f"{name}, heads up — {title}.{deadline_note} "
+        actionable = _safe(facts.get("regulation_actionable"))
+        action_note = f" Required action: {actionable}." if actionable else ""
+        return (f"{name}, heads up — {title}.{deadline_note}{action_note} "
                 f"Non-compliance risks penalties and disruption. Start your audit now?")
 
     if trigger_kind == "supply_alert":
@@ -411,19 +443,19 @@ def _fallback_body(facts: dict, trigger_kind: str, send_as: str) -> str:
         mfr = _safe(facts.get("alert_manufacturer"))
         mfr_note = f" from {mfr}" if mfr else ""
         return (f"{name}, urgent: {molecule}{mfr_note} — batches {batch_str} flagged for recall. "
-                f"Affected customers need immediate notification. Draft alerts now?")
+                f"Affected customers need immediate notification. Draft alerts now to prevent safety issues?")
 
     if trigger_kind == "curious_ask_due":
         template = _safe(facts.get("ask_template"), "business_trend")
         question = template.replace("_", " ")
-        return (f"{name}, quick one — I'm tracking {question} trends for businesses in {locality}. "
+        return (f"{name}, quick one — I'm tracking {question} trends for businesses{loc_phrase}. "
                 f"Your input helps me tailor better insights for you. Share your take?")
 
     if trigger_kind == "dormant_with_vera":
         days = _safe(facts.get("dormancy_days"), "a while")
         topic = _safe(facts.get("last_topic"), "our last conversation")
         return (f"{name}, it's been {days} days since we last connected about {topic.replace('_', ' ')}. "
-                f"I have fresh data on your {locality} market that's worth a look. Explore this?")
+                f"I have fresh data on your market{loc_phrase} that's worth a look. Explore this?")
 
     if trigger_kind == "gbp_unverified":
         uplift = _pct(facts.get("estimated_uplift_pct"))
@@ -442,7 +474,7 @@ def _fallback_body(facts: dict, trigger_kind: str, send_as: str) -> str:
         season = _safe(facts.get("season_name"), "the current season")
         trends = facts.get("seasonal_trends", [])
         trend_str = ", ".join(str(t) for t in trends[:3]) if trends else "shifting demand patterns"
-        return (f"{name}, {season.replace('_', ' ')} is driving shifts in {locality}: {trend_str}. "
+        return (f"{name}, {season.replace('_', ' ')} is driving shifts{loc_phrase}: {trend_str}. "
                 f"Adjusting your inventory now captures early demand. Review your shelf mix?")
 
     if trigger_kind == "cde_opportunity":
@@ -450,7 +482,7 @@ def _fallback_body(facts: dict, trigger_kind: str, send_as: str) -> str:
         credits = _safe(facts.get("cde_credits"))
         fee = _safe(facts.get("cde_fee"), "details available")
         credit_note = f" ({credits} CDE credits, {fee})" if credits else ""
-        return (f"{name}, {title}{credit_note} — relevant to practitioners in {locality}. "
+        return (f"{name}, {title}{credit_note} — relevant to practitioners{loc_phrase}. "
                 f"Staying current strengthens both your skills and patient trust. Register?")
 
     if trigger_kind == "customer_lapsed_hard":
@@ -461,7 +493,7 @@ def _fallback_body(facts: dict, trigger_kind: str, send_as: str) -> str:
         return f"{name}, {gap.lower()}{hook}. A personalized win-back message can re-engage them. Send one?"
 
     if trigger_kind == "customer_lapsed_soft":
-        return f"{name}, a few customers are showing early lapse signals in {locality}. A timely check-in keeps them engaged. Send a reminder?"
+        return f"{name}, a few customers are showing early lapse signals{loc_phrase}. A timely check-in keeps them engaged. Send a reminder?"
 
     if trigger_kind == "trial_followup":
         trial_date = _safe(facts.get("trial_date"), "recently")
@@ -477,7 +509,7 @@ def _fallback_body(facts: dict, trigger_kind: str, send_as: str) -> str:
     offer = _offer_phrase(facts)
     loc_note = f" in {locality}" if locality else ""
     if views:
-        return (f"{name}, we detected unusual activity on your listing{loc_note} — {views} views this month "
+        return (f"{name}, we detected unusual activity on your listing{loc_phrase} — {views} views this month "
                 f"with room to improve conversions. Want me to share specific insights?")
-    return (f"{name}, we've been analyzing your listing data{loc_note} and identified ways to improve visibility and conversions. "
+    return (f"{name}, we've been analyzing your listing data{loc_phrase} and identified ways to improve visibility and conversions. "
             f"Want me to share a quick analysis with actionable next steps?")

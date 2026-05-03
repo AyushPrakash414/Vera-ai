@@ -11,7 +11,7 @@ from app.context_store import ContextStore
 from app.decision_engine import should_send, score_trigger
 from app.fact_extractor import extract_facts
 from app.cta_engine import decide_cta, decide_send_as
-from app.message_generator import generate_message_body
+from app.message_generator import generate_message_body, _saluted_name
 from app.validator import validate_message, build_rationale
 from app.config import MAX_ACTIONS_PER_TICK
 
@@ -127,9 +127,8 @@ def dispatch_tick(
         conv_id = f"conv_{merchant_id}_{trigger_kind}_{tid.split('_')[1] if '_' in tid else 'x'}"
 
         # Build template params
-        owner = facts.get("owner_first_name", "")
-        merchant_name = facts.get("merchant_name", "")
-        template_params = [owner or merchant_name, trigger_kind, body[:80]]
+        saluted_name = _saluted_name(facts, send_as)
+        template_params = [saluted_name, trigger_kind, body[:80]]
 
         action = {
             "conversation_id": conv_id,
