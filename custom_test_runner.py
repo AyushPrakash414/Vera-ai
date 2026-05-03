@@ -11,7 +11,7 @@ Usage:  python custom_test_runner.py
 import requests, json, time, sys, copy
 from datetime import datetime, timezone
 
-BASE_URL = "http://localhost:8080"
+BASE_URL = " https://vera-ai-kwdc.onrender.com"
 VERSION = 1  # must match judge's version (1) so category pushes are idempotent
 
 # Unique per-run suffix so suppression/cooldown never blocks re-runs

@@ -230,6 +230,8 @@ def _loc_phrase(locality: str) -> str:
     return ""
 
 
+import re
+
 def _saluted_name(facts: dict, send_as: str) -> str:
     """Return the properly saluted name based on category conventions."""
     if send_as == "merchant_on_behalf":
@@ -239,8 +241,8 @@ def _saluted_name(facts: dict, send_as: str) -> str:
     salutations = facts.get("salutation_examples", [])
     
     if salutations and owner:
-        # e.g. "Dr. {first_name}" -> "Dr. Meera"
-        return salutations[0].replace("{first_name}", owner)
+        # e.g. "Dr. {first_name}" -> "Dr. Meera", "Hi {pharmacist_name}" -> "Hi Ramesh"
+        return re.sub(r'\{.*?\}', owner, salutations[0])
     
     return owner or _safe(facts.get("merchant_name"), "there")
 
